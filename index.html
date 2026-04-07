@@ -7,21 +7,22 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
         .card-header { background-color: #2e7d32; color: white; font-weight: bold; }
         .table-input { border: none; background: transparent; width: 100%; }
         .table-input:focus { outline: 1px solid #2e7d32; background: white; }
         .total-section { background: #e8f5e9; padding: 15px; border-radius: 8px; }
         .footer-credits { font-size: 0.85rem; color: #666; margin-top: 30px; text-align: center; }
-        .sugerencias { position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .sugerencia-item { padding: 8px 12px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
-        .sugerencia-item:hover { background-color: #e8f5e9; }
-        .cliente-info { font-size: 0.8rem; color: #666; margin-top: 4px; }
-        .spinner-small { width: 16px; height: 16px; }
+        .sugerencias { position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 4px; width: 100%; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .sug-item { padding: 8px 12px; cursor: pointer; font-size: 0.88rem; border-bottom: 1px solid #f0f0f0; }
+        .sug-item:hover { background-color: #e8f5e9; }
+        .sug-sub { font-size: 0.78rem; color: #888; }
+        .sug-iva { font-size: 0.75rem; color: #2e7d32; font-weight: 600; }
+        .cliente-info { font-size: 0.8rem; color: #2e7d32; margin-top: 4px; }
+        .iva-badge { font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; background: #e8f5e9; color: #2e7d32; font-weight: 600; }
     </style>
 </head>
 <body>
-
 <div class="container my-4">
     <div class="card shadow">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -29,89 +30,65 @@
             <span class="badge bg-light text-dark">VIBRAS POSITIVAS HM</span>
         </div>
         <div class="card-body">
-
             <div class="row g-3 mb-4">
-                <!-- CLIENTE CON AUTOCOMPLETE -->
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Cliente</label>
                     <div class="position-relative">
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="clienteTexto"
-                                placeholder="Buscar por nombre o NIT..."
-                                oninput="buscarCliente(this.value)"
-                                autocomplete="off">
-                            <span class="input-group-text" id="spinnerCliente" style="display:none">
-                                <div class="spinner-border spinner-small text-success" role="status"></div>
-                            </span>
-                        </div>
+                        <input type="text" class="form-control" id="clienteTexto"
+                            placeholder="Buscar nombre o NIT..."
+                            oninput="buscarCliente(this.value)" autocomplete="off">
                         <div id="listaClientes" class="sugerencias" style="display:none"></div>
                         <input type="hidden" id="clienteNit">
                         <div id="clienteSeleccionado" class="cliente-info"></div>
                     </div>
                 </div>
-
                 <div class="col-md-2">
                     <label class="form-label fw-bold">Vendedor</label>
                     <input type="text" class="form-control" id="vendedor" placeholder="Cód. Vendedor">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-bold">Bodega / Sucursal</label>
+                    <label class="form-label fw-bold">Bodega</label>
                     <select class="form-select" id="sucursal">
                         <option value="001">Principal - Caucasia</option>
                         <option value="002">Bodega General</option>
                     </select>
                 </div>
                 <div class="col-md-3 text-end">
-                    <label class="form-label fw-bold">Fecha de Trabajo</label>
+                    <label class="form-label fw-bold">Fecha</label>
                     <input type="date" class="form-control" id="fechaActual">
                 </div>
             </div>
-
             <hr>
-
             <div class="table-responsive">
-                <table class="table table-bordered align-middle" id="tablaProductos">
+                <table class="table table-bordered align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 160px;">Referencia</th>
+                            <th style="width:150px">Referencia</th>
                             <th>Descripción</th>
-                            <th style="width: 80px;">Cant.</th>
-                            <th style="width: 150px;">Valor Unit.</th>
-                            <th style="width: 100px;">Desc %</th>
-                            <th style="width: 150px;">Subtotal</th>
-                            <th style="width: 50px;"></th>
+                            <th style="width:70px">Cant.</th>
+                            <th style="width:130px">Valor Unit.</th>
+                            <th style="width:80px">Desc %</th>
+                            <th style="width:70px">IVA %</th>
+                            <th style="width:130px">Subtotal</th>
+                            <th style="width:40px"></th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTabla"></tbody>
                 </table>
             </div>
-
             <button class="btn btn-success btn-sm mb-4" onclick="agregarFila()">
                 <i class="fas fa-plus me-1"></i> Agregar Producto
             </button>
-
             <div class="row justify-content-end">
-                <div class="col-md-4 total-section">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal:</span>
-                        <span id="txtSubtotal">$ 0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 text-danger">
-                        <span>Descuento:</span>
-                        <span id="txtDescuento">-$ 0.00</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>IVA (19%):</span>
-                        <span id="txtIva">$ 0.00</span>
-                    </div>
+                <div class="col-md-5 total-section">
+                    <div class="d-flex justify-content-between mb-2"><span>Subtotal bruto:</span><span id="txtSubtotal">$ 0</span></div>
+                    <div class="d-flex justify-content-between mb-2 text-danger"><span>Descuento:</span><span id="txtDescuento">-$ 0</span></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Base gravable:</span><span id="txtBase">$ 0</span></div>
+                    <div class="d-flex justify-content-between mb-2 text-success"><span>IVA (por producto):</span><span id="txtIva">$ 0</span></div>
                     <hr>
-                    <div class="d-flex justify-content-between fw-bold fs-5">
-                        <span>TOTAL:</span>
-                        <span id="txtTotal">$ 0.00</span>
-                    </div>
+                    <div class="d-flex justify-content-between fw-bold fs-5"><span>TOTAL:</span><span id="txtTotal">$ 0</span></div>
                 </div>
             </div>
-
             <div class="mt-4 d-flex gap-2">
                 <button class="btn btn-primary" onclick="guardarCotizacion()">
                     <i class="fas fa-save me-1"></i> Guardar Cotización
@@ -120,216 +97,18 @@
                     <i class="fas fa-times me-1"></i> Anular
                 </button>
             </div>
-
         </div>
     </div>
-
     <footer class="footer-credits">
-        <p>App desarrollada por <strong>VIBRAS POSITIVAS HM</strong><br>
-        Derechos de autor (3117700431)</p>
+        <p>App desarrollada por <strong>VIBRAS POSITIVAS HM</strong><br>Derechos de autor (3117700431)</p>
     </footer>
 </div>
-
 <script>
-    // ── CONFIGURACION ─────────────────────────────────
     const API = 'http://192.168.1.12:3000/api';
-    let timeoutCliente = null;
-    let timeoutProducto = null;
+    let timeoutCli = null, timeoutProd = null, filaId = 0;
 
-    // Inicializar fecha
     document.getElementById('fechaActual').valueAsDate = new Date();
 
-    // ── BUSCAR CLIENTE ────────────────────────────────
     async function buscarCliente(valor) {
-        clearTimeout(timeoutCliente);
-        const lista = document.getElementById('listaClientes');
-        if (valor.length < 2) { lista.style.display = 'none'; return; }
-
-        document.getElementById('spinnerCliente').style.display = 'flex';
-        timeoutCliente = setTimeout(async () => {
-            try {
-                const res  = await fetch(`${API}/clientes?q=${encodeURIComponent(valor)}`);
-                const data = await res.json();
-                document.getElementById('spinnerCliente').style.display = 'none';
-
-                if (!data.length) { lista.style.display = 'none'; return; }
-
-                lista.innerHTML = data.map(c => `
-                    <div class="sugerencia-item"
-                         onclick="seleccionarCliente('${c.nit}','${(c.razon_social||'').replace(/'/g,"\\'")}','${(c.ciudad||'')}','${(c.telefonos||'')}')">
-                        <strong>${c.razon_social}</strong>
-                        <div style="font-size:0.8rem;color:#666">${c.nit} · ${c.ciudad || ''}</div>
-                    </div>`).join('');
-                lista.style.display = 'block';
-            } catch(e) {
-                document.getElementById('spinnerCliente').style.display = 'none';
-                console.error('Error clientes:', e);
-            }
-        }, 400);
-    }
-
-    function seleccionarCliente(nit, nombre, ciudad, tel) {
-        document.getElementById('clienteTexto').value = nombre;
-        document.getElementById('clienteNit').value   = nit;
-        document.getElementById('clienteSeleccionado').innerHTML =
-            `<i class="fas fa-check-circle text-success me-1"></i>${nit} · ${ciudad} · ${tel}`;
-        document.getElementById('listaClientes').style.display = 'none';
-    }
-
-    // Cerrar lista al hacer clic fuera
-    document.addEventListener('click', e => {
-        if (!e.target.closest('#clienteTexto') && !e.target.closest('#listaClientes')) {
-            document.getElementById('listaClientes').style.display = 'none';
-        }
-    });
-
-    // ── AGREGAR FILA ──────────────────────────────────
-    let filaId = 0;
-    function agregarFila() {
-        const id   = filaId++;
-        const tbody = document.getElementById('cuerpoTabla');
-        const fila  = document.createElement('tr');
-        fila.id = 'fila-' + id;
-        fila.innerHTML = `
-            <td class="position-relative">
-                <input type="text" class="table-input" placeholder="Ref o nombre..."
-                    oninput="buscarProducto(this, ${id})" autocomplete="off">
-                <div id="sug-${id}" class="sugerencias" style="display:none"></div>
-            </td>
-            <td><input type="text" class="table-input" placeholder="Descripción" id="desc-${id}"></td>
-            <td><input type="number" class="table-input" value="1" min="1" oninput="calcularTotales()"></td>
-            <td><input type="number" class="table-input" value="0" id="precio-${id}" oninput="calcularTotales()"></td>
-            <td><input type="number" class="table-input" value="0" min="0" max="100" oninput="calcularTotales()"></td>
-            <td class="fila-subtotal fw-bold text-end">$ 0</td>
-            <td><button class="btn btn-link text-danger p-0"
-                onclick="document.getElementById('fila-${id}').remove(); calcularTotales();">
-                <i class="fas fa-trash"></i></button></td>`;
-        tbody.appendChild(fila);
-    }
-
-    // ── BUSCAR PRODUCTO ───────────────────────────────
-    async function buscarProducto(input, id) {
-        clearTimeout(timeoutProducto);
-        const sug = document.getElementById('sug-' + id);
-        if (input.value.length < 2) { sug.style.display = 'none'; return; }
-
-        timeoutProducto = setTimeout(async () => {
-            try {
-                const res  = await fetch(`${API}/productos?q=${encodeURIComponent(input.value)}`);
-                const data = await res.json();
-                if (!data.length) { sug.style.display = 'none'; return; }
-
-                sug.innerHTML = data.map(p => `
-                    <div class="sugerencia-item"
-                         onclick="seleccionarProducto(${id},'${p.referencia}','${(p.nombre_producto||'').replace(/'/g,"\\'")}',${p.precio_base_venta||0})">
-                        <strong>${p.referencia}</strong> — ${p.nombre_producto}
-                        <div style="font-size:0.8rem;color:#2e7d32">$ ${(p.precio_base_venta||0).toLocaleString()}</div>
-                    </div>`).join('');
-                sug.style.display = 'block';
-            } catch(e) { console.error('Error productos:', e); }
-        }, 400);
-    }
-
-    function seleccionarProducto(id, ref, nombre, precio) {
-        const fila = document.getElementById('fila-' + id);
-        fila.querySelectorAll('input')[0].value = ref;
-        document.getElementById('desc-'   + id).value   = nombre;
-        document.getElementById('precio-' + id).value   = precio;
-        document.getElementById('sug-'    + id).style.display = 'none';
-        calcularTotales();
-    }
-
-    // ── CALCULAR TOTALES ──────────────────────────────
-    function calcularTotales() {
-        let subtotalGeneral = 0;
-        let descuentoTotal  = 0;
-
-        document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
-            const inputs = fila.querySelectorAll('input');
-            const cant   = parseFloat(inputs[2].value) || 0;
-            const precio = parseFloat(inputs[3].value) || 0;
-            const desc   = parseFloat(inputs[4].value) || 0;
-
-            const subtotalFila  = cant * precio;
-            const descuentoFila = subtotalFila * (desc / 100);
-            const totalFila     = subtotalFila - descuentoFila;
-
-            fila.querySelector('.fila-subtotal').innerText = '$ ' + Math.round(totalFila).toLocaleString();
-            subtotalGeneral += subtotalFila;
-            descuentoTotal  += descuentoFila;
-        });
-
-        const iva        = (subtotalGeneral - descuentoTotal) * 0.19;
-        const totalFinal = (subtotalGeneral - descuentoTotal) + iva;
-
-        document.getElementById('txtSubtotal').innerText  = '$ ' + Math.round(subtotalGeneral).toLocaleString();
-        document.getElementById('txtDescuento').innerText = '-$ ' + Math.round(descuentoTotal).toLocaleString();
-        document.getElementById('txtIva').innerText       = '$ ' + Math.round(iva).toLocaleString();
-        document.getElementById('txtTotal').innerText     = '$ ' + Math.round(totalFinal).toLocaleString();
-    }
-
-    // ── GUARDAR COTIZACION ────────────────────────────
-    async function guardarCotizacion() {
-        const nit = document.getElementById('clienteNit').value;
-        if (!nit) { alert('Por favor selecciona un cliente de la lista.'); return; }
-
-        const items = [];
-        document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
-            const inputs = fila.querySelectorAll('input');
-            const ref    = inputs[0].value.trim();
-            if (!ref) return;
-            items.push({
-                referencia: ref,
-                descripcion: inputs[1].value,
-                cantidad:   parseFloat(inputs[2].value) || 0,
-                precio:     parseFloat(inputs[3].value) || 0,
-                descuento:  parseFloat(inputs[4].value) || 0
-            });
-        });
-
-        if (!items.length) { alert('Agrega al menos un producto.'); return; }
-
-        const payload = {
-            cliente:  nit,
-            vendedor: document.getElementById('vendedor').value,
-            fecha:    document.getElementById('fechaActual').value,
-            bodega:   document.getElementById('sucursal').value,
-            items
-        };
-
-        try {
-            const res  = await fetch(`${API}/cotizaciones`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (data.ok) {
-                alert('✅ Cotización #' + data.numero + ' guardada exitosamente!');
-                limpiarFormulario();
-            } else {
-                alert('❌ Error: ' + data.error);
-            }
-        } catch(e) {
-            alert('❌ No se pudo conectar con el servidor.\n' + e.message);
-        }
-    }
-
-    // ── LIMPIAR ───────────────────────────────────────
-    function limpiarFormulario() {
-        document.getElementById('clienteTexto').value        = '';
-        document.getElementById('clienteNit').value          = '';
-        document.getElementById('clienteSeleccionado').innerHTML = '';
-        document.getElementById('vendedor').value            = '';
-        document.getElementById('cuerpoTabla').innerHTML     = '';
-        document.getElementById('fechaActual').valueAsDate   = new Date();
-        calcularTotales();
-        agregarFila();
-    }
-
-    // Fila inicial
-    agregarFila();
-</script>
-
-</body>
-</html>
+        clearTimeout(timeoutCli);
+        const lista = document.getElementById('lis
