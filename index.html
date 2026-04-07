@@ -111,4 +111,167 @@
 
     async function buscarCliente(valor) {
         clearTimeout(timeoutCli);
-        const lista = document.getElementById('lis
+        const lista = document.getElementById('listaClientes');
+        if (valor.length < 2) { lista.style.display = 'none'; return; }
+        timeoutCli = setTimeout(async () => {
+            try {
+                const res  = await fetch(`${API}/clientes?q=${encodeURIComponent(valor)}`);
+                const data = await res.json();
+                if (!data.length) { lista.style.display = 'none'; return; }
+                lista.innerHTML = data.map(c => `
+                    <div class="sug-item" onclick="seleccionarCliente('${c.nit}','${(c.razon_social||'').replace(/'/g,"\\'")}','${c.ciudad||''}','${c.telefonos||''}')">
+                        <strong>${c.razon_social}</strong>
+                        <div class="sug-sub">${c.nit} · ${c.ciudad||''} · ${c.telefonos||''}</div>
+                    </div>`).join('');
+                lista.style.display = 'block';
+            } catch(e) { console.error(e); }
+        }, 400);
+    }
+
+    function seleccionarCliente(nit, nombre, ciudad, tel) {
+        document.getElementById('clienteTexto').value = nombre;
+        document.getElementById('clienteNit').value   = nit;
+        document.getElementById('clienteSeleccionado').innerHTML =
+            `<i class="fas fa-check-circle me-1"></i>${nit} · ${ciudad} · ${tel}`;
+        document.getElementById('listaClientes').style.display = 'none';
+    }
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#clienteTexto') && !e.target.closest('#listaClientes'))
+            document.getElementById('listaClientes').style.display = 'none';
+    });
+
+    function agregarFila() {
+        const id = filaId++;
+        const fila = document.createElement('tr');
+        fila.id = 'fila-' + id;
+        fila.innerHTML = `
+            <td class="position-relative">
+                <input type="text" class="table-input" placeholder="Ref o nombre..."
+                    oninput="buscarProducto(this,${id})" autocomplete="off">
+                <div id="sug-${id}" class="sugerencias" style="display:none"></div>
+            </td>
+            <td><input type="text" class="table-input" placeholder="Descripción" id="desc-${id}"></td>
+            <td><input type="number" class="table-input" value="1" min="1" oninput="calcularTotales()"></td>
+            <td><input type="number" class="table-input" value="0" id="precio-${id}" oninput="calcularTotales()"></td>
+            <td><input type="number" class="table-input" value="0" min="0" max="100" oninput="calcularTotales()"></td>
+            <td class="text-center">
+                <input type="hidden" id="iva-${id}" value="0">
+                <span id="iva-badge-${id}" class="iva-badge">0%</span>
+            </td>
+            <td class="fw-bold text-end" id="sub-${id}">$ 0</td>
+            <td><button class="btn btn-link text-danger p-0"
+                onclick="document.getElementById('fila-${id}').remove(); calcularTotales();">
+                <i class="fas fa-trash"></i></button></td>`;
+        document.getElementById('cuerpoTabla').appendChild(fila);
+    }
+
+    async function buscarProducto(input, id) {
+        clearTimeout(timeoutProd);
+        const sug = document.getElementById('sug-' + id);
+        if (input.value.length < 2) { sug.style.display = 'none'; return; }
+        timeoutProd = setTimeout(async () => {
+            try {
+                const res  = await fetch(`${API}/productos?q=${encodeURIComponent(input.value)}`);
+                const data = await res.json();
+                if (!data.length) { sug.style.display = 'none'; return; }
+                sug.innerHTML = data.map(p => `
+                    <div class="sug-item"
+                         onclick="seleccionarProducto(${id},'${p.referencia}','${(p.nombre_producto||'').replace(/'/g,"\\'")}',${p.precio_base_venta||0},${p.porcentaje_iva||0})">
+                        <strong>${p.referencia}</strong> — ${p.nombre_producto}
+                        <div class="sug-sub">
+                            $ ${(p.precio_base_venta||0).toLocaleString()}
+                            <span class="sug-iva ms-2">IVA ${p.porcentaje_iva}%</span>
+                        </div>
+                    </div>`).join('');
+                sug.style.display = 'block';
+            } catch(e) { console.error(e); }
+        }, 400);
+    }
+
+    function seleccionarProducto(id, ref, nombre, precio, iva) {
+        const fila = document.getElementById('fila-' + id);
+        fila.querySelectorAll('input')[0].value           = ref;
+        document.getElementById('desc-'      + id).value  = nombre;
+        document.getElementById('precio-'    + id).value  = precio;
+        document.getElementById('iva-'       + id).value  = iva;
+        document.getElementById('iva-badge-' + id).textContent = iva + '%';
+        document.getElementById('sug-'       + id).style.display = 'none';
+        calcularTotales();
+    }
+
+    function calcularTotales() {
+        let subtotalBruto = 0, descuentoTotal = 0, ivaTotal = 0;
+        document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
+            const id     = fila.id.replace('fila-', '');
+            const inputs = fila.querySelectorAll('input[type="number"]');
+            const cant   = parseFloat(inputs[0].value) || 0;
+            const precio = parseFloat(inputs[1].value) || 0;
+            const desc   = parseFloat(inputs[2].value) || 0;
+            const iva    = parseFloat(document.getElementById('iva-' + id)?.value) || 0;
+            const sub    = cant * precio;
+            const dsc    = sub * (desc / 100);
+            const base   = sub - dsc;
+            const ivaVal = base * (iva / 100);
+            const subEl  = document.getElementById('sub-' + id);
+            if (subEl) subEl.textContent = '$ ' + Math.round(base + ivaVal).toLocaleString();
+            subtotalBruto  += sub;
+            descuentoTotal += dsc;
+            ivaTotal       += ivaVal;
+        });
+        const base = subtotalBruto - descuentoTotal;
+        document.getElementById('txtSubtotal').textContent  = '$ ' + Math.round(subtotalBruto).toLocaleString();
+        document.getElementById('txtDescuento').textContent = '-$ ' + Math.round(descuentoTotal).toLocaleString();
+        document.getElementById('txtBase').textContent      = '$ ' + Math.round(base).toLocaleString();
+        document.getElementById('txtIva').textContent       = '$ ' + Math.round(ivaTotal).toLocaleString();
+        document.getElementById('txtTotal').textContent     = '$ ' + Math.round(base + ivaTotal).toLocaleString();
+    }
+
+    async function guardarCotizacion() {
+        const nit = document.getElementById('clienteNit').value;
+        if (!nit) { alert('Por favor selecciona un cliente de la lista.'); return; }
+        const items = [];
+        document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
+            const id  = fila.id.replace('fila-', '');
+            const ins = fila.querySelectorAll('input[type="number"]');
+            const ref = fila.querySelectorAll('input')[0].value.trim();
+            if (!ref) return;
+            items.push({
+                referencia:  ref,
+                descripcion: document.getElementById('desc-' + id).value,
+                cantidad:    parseFloat(ins[0].value) || 0,
+                precio:      parseFloat(ins[1].value) || 0,
+                descuento:   parseFloat(ins[2].value) || 0,
+                iva:         parseFloat(document.getElementById('iva-' + id)?.value) || 0
+            });
+        });
+        if (!items.length) { alert('Agrega al menos un producto.'); return; }
+        try {
+            const res  = await fetch(`${API}/cotizaciones`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cliente: nit, vendedor: document.getElementById('vendedor').value,
+                    fecha: document.getElementById('fechaActual').value,
+                    bodega: document.getElementById('sucursal').value, items
+                })
+            });
+            const data = await res.json();
+            if (data.ok) { alert('Cotizacion #' + data.numero + ' guardada!'); limpiarFormulario(); }
+            else alert('Error: ' + data.error);
+        } catch(e) { alert('No se pudo conectar: ' + e.message); }
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('clienteTexto').value           = '';
+        document.getElementById('clienteNit').value             = '';
+        document.getElementById('clienteSeleccionado').innerHTML = '';
+        document.getElementById('vendedor').value               = '';
+        document.getElementById('cuerpoTabla').innerHTML        = '';
+        document.getElementById('fechaActual').valueAsDate      = new Date();
+        calcularTotales(); agregarFila();
+    }
+
+    agregarFila();
+</script>
+</body>
+</html>
