@@ -20,6 +20,18 @@
         .sug-iva { font-size: 0.75rem; color: #2e7d32; font-weight: 600; }
         .cliente-info { font-size: 0.8rem; color: #2e7d32; margin-top: 4px; }
         .iva-badge { font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+
+        /* ESTILOS DE IMPRESION */
+        @media print {
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none !important; border: none !important; }
+            .card-header { background-color: #2e7d32 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .total-section { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .table-input { padding: 0 !important; }
+            .print-header { display: block !important; }
+        }
+        .print-header { display: none; }
     </style>
 </head>
 <body>
@@ -70,13 +82,13 @@
                             <th style="width:80px">Desc %</th>
                             <th style="width:70px">IVA %</th>
                             <th style="width:130px">Subtotal</th>
-                            <th style="width:40px"></th>
+                            <th class="no-print" style="width:40px"></th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoTabla"></tbody>
                 </table>
             </div>
-            <button class="btn btn-success btn-sm mb-4" onclick="agregarFila()">
+            <button class="btn btn-success btn-sm mb-4 no-print" onclick="agregarFila()">
                 <i class="fas fa-plus me-1"></i> Agregar Producto
             </button>
             <div class="row justify-content-end">
@@ -89,9 +101,17 @@
                     <div class="d-flex justify-content-between fw-bold fs-5"><span>TOTAL:</span><span id="txtTotal">$ 0</span></div>
                 </div>
             </div>
-            <div class="mt-4 d-flex gap-2">
+
+            <!-- BOTONES -->
+            <div class="mt-4 d-flex gap-2 flex-wrap no-print">
                 <button class="btn btn-primary" onclick="guardarCotizacion()">
-                    <i class="fas fa-save me-1"></i> Guardar Cotización
+                    <i class="fas fa-save me-1"></i> Guardar
+                </button>
+                <button class="btn btn-success" onclick="enviarWhatsApp()">
+                    <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                </button>
+                <button class="btn btn-secondary" onclick="imprimirCotizacion()">
+                    <i class="fas fa-print me-1"></i> Imprimir
                 </button>
                 <button class="btn btn-outline-danger" onclick="limpiarFormulario()">
                     <i class="fas fa-times me-1"></i> Anular
@@ -105,6 +125,7 @@
 </div>
 <script>
     const API = 'http://192.168.1.12:3000/api';
+    const WHATSAPP = '573117700431';
     let timeoutCli = null, timeoutProd = null, filaId = 0;
 
     document.getElementById('fechaActual').valueAsDate = new Date();
@@ -160,7 +181,7 @@
                 <span id="iva-badge-${id}" class="iva-badge">0%</span>
             </td>
             <td class="fw-bold text-end" id="sub-${id}">$ 0</td>
-            <td><button class="btn btn-link text-danger p-0"
+            <td class="no-print"><button class="btn btn-link text-danger p-0"
                 onclick="document.getElementById('fila-${id}').remove(); calcularTotales();">
                 <i class="fas fa-trash"></i></button></td>`;
         document.getElementById('cuerpoTabla').appendChild(fila);
@@ -225,6 +246,53 @@
         document.getElementById('txtBase').textContent      = '$ ' + Math.round(base).toLocaleString();
         document.getElementById('txtIva').textContent       = '$ ' + Math.round(ivaTotal).toLocaleString();
         document.getElementById('txtTotal').textContent     = '$ ' + Math.round(base + ivaTotal).toLocaleString();
+    }
+
+    // ── IMPRIMIR ──────────────────────────────────────
+    function imprimirCotizacion() {
+        window.print();
+    }
+
+    // ── ENVIAR WHATSAPP ───────────────────────────────
+    function enviarWhatsApp() {
+        const cliente  = document.getElementById('clienteTexto').value || 'Sin cliente';
+        const vendedor = document.getElementById('vendedor').value || '-';
+        const fecha    = document.getElementById('fechaActual').value;
+
+        let mensaje = `*COTIZACIÓN - VIBRAS POSITIVAS HM*\n`;
+        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
+        mensaje += `*Cliente:* ${cliente}\n`;
+        mensaje += `*Vendedor:* ${vendedor}\n`;
+        mensaje += `*Fecha:* ${fecha}\n`;
+        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
+        mensaje += `*PRODUCTOS:*\n`;
+
+        document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
+            const id     = fila.id.replace('fila-', '');
+            const inputs = fila.querySelectorAll('input[type="number"]');
+            const ref    = fila.querySelectorAll('input')[0].value.trim();
+            const desc   = document.getElementById('desc-' + id)?.value || '';
+            const cant   = parseFloat(inputs[0].value) || 0;
+            const precio = parseFloat(inputs[1].value) || 0;
+            const iva    = parseFloat(document.getElementById('iva-' + id)?.value) || 0;
+            const sub    = document.getElementById('sub-' + id)?.textContent || '$ 0';
+            if (!ref) return;
+            mensaje += `\n▪ *${ref}* ${desc}\n`;
+            mensaje += `  Cant: ${cant} x $ ${Math.round(precio).toLocaleString()}`;
+            if (iva > 0) mensaje += ` + IVA ${iva}%`;
+            mensaje += `\n  Subtotal: ${sub}\n`;
+        });
+
+        mensaje += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+        mensaje += `Subtotal: ${document.getElementById('txtSubtotal').textContent}\n`;
+        mensaje += `Descuento: ${document.getElementById('txtDescuento').textContent}\n`;
+        mensaje += `IVA: ${document.getElementById('txtIva').textContent}\n`;
+        mensaje += `*TOTAL: ${document.getElementById('txtTotal').textContent}*\n`;
+        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
+        mensaje += `_VIBRAS POSITIVAS HM - 3117700431_`;
+
+        const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+        window.open(url, '_blank');
     }
 
     async function guardarCotizacion() {
