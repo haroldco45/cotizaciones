@@ -20,18 +20,13 @@
         .sug-iva { font-size: 0.75rem; color: #2e7d32; font-weight: 600; }
         .cliente-info { font-size: 0.8rem; color: #2e7d32; margin-top: 4px; }
         .iva-badge { font-size: 0.7rem; padding: 1px 5px; border-radius: 4px; background: #e8f5e9; color: #2e7d32; font-weight: 600; }
-
-        /* ESTILOS DE IMPRESION */
         @media print {
             body { background: white !important; }
             .no-print { display: none !important; }
             .card { box-shadow: none !important; border: none !important; }
             .card-header { background-color: #2e7d32 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .total-section { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .table-input { padding: 0 !important; }
-            .print-header { display: block !important; }
         }
-        .print-header { display: none; }
     </style>
 </head>
 <body>
@@ -78,7 +73,7 @@
                             <th style="width:150px">Referencia</th>
                             <th>Descripción</th>
                             <th style="width:70px">Cant.</th>
-                            <th style="width:130px">Valor Unit.</th>
+                            <th style="width:130px">Precio s/IVA</th>
                             <th style="width:80px">Desc %</th>
                             <th style="width:70px">IVA %</th>
                             <th style="width:130px">Subtotal</th>
@@ -101,8 +96,6 @@
                     <div class="d-flex justify-content-between fw-bold fs-5"><span>TOTAL:</span><span id="txtTotal">$ 0</span></div>
                 </div>
             </div>
-
-            <!-- BOTONES -->
             <div class="mt-4 d-flex gap-2 flex-wrap no-print">
                 <button class="btn btn-primary" onclick="guardarCotizacion()">
                     <i class="fas fa-save me-1"></i> Guardar
@@ -110,7 +103,7 @@
                 <button class="btn btn-success" onclick="enviarWhatsApp()">
                     <i class="fab fa-whatsapp me-1"></i> WhatsApp
                 </button>
-                <button class="btn btn-secondary" onclick="imprimirCotizacion()">
+                <button class="btn btn-secondary" onclick="window.print()">
                     <i class="fas fa-print me-1"></i> Imprimir
                 </button>
                 <button class="btn btn-outline-danger" onclick="limpiarFormulario()">
@@ -198,10 +191,11 @@
                 if (!data.length) { sug.style.display = 'none'; return; }
                 sug.innerHTML = data.map(p => `
                     <div class="sug-item"
-                         onclick="seleccionarProducto(${id},'${p.referencia}','${(p.nombre_producto||'').replace(/'/g,"\\'")}',${p.precio_base_venta||0},${p.porcentaje_iva||0})">
+                         onclick="seleccionarProducto(${id},'${p.referencia}','${(p.nombre_producto||'').replace(/'/g,"\\'")}',${p.precio_sin_iva||0},${p.porcentaje_iva||0},${p.precio_con_iva||0})">
                         <strong>${p.referencia}</strong> — ${p.nombre_producto}
                         <div class="sug-sub">
-                            $ ${(p.precio_base_venta||0).toLocaleString()}
+                            s/IVA: $ ${(p.precio_sin_iva||0).toLocaleString()}
+                            &nbsp;|&nbsp; c/IVA: $ ${(p.precio_con_iva||0).toLocaleString()}
                             <span class="sug-iva ms-2">IVA ${p.porcentaje_iva}%</span>
                         </div>
                     </div>`).join('');
@@ -210,11 +204,11 @@
         }, 400);
     }
 
-    function seleccionarProducto(id, ref, nombre, precio, iva) {
+    function seleccionarProducto(id, ref, nombre, precioSinIva, iva, precioConIva) {
         const fila = document.getElementById('fila-' + id);
         fila.querySelectorAll('input')[0].value           = ref;
         document.getElementById('desc-'      + id).value  = nombre;
-        document.getElementById('precio-'    + id).value  = precio;
+        document.getElementById('precio-'    + id).value  = precioSinIva;
         document.getElementById('iva-'       + id).value  = iva;
         document.getElementById('iva-badge-' + id).textContent = iva + '%';
         document.getElementById('sug-'       + id).style.display = 'none';
@@ -227,15 +221,18 @@
             const id     = fila.id.replace('fila-', '');
             const inputs = fila.querySelectorAll('input[type="number"]');
             const cant   = parseFloat(inputs[0].value) || 0;
-            const precio = parseFloat(inputs[1].value) || 0;
+            const precio = parseFloat(inputs[1].value) || 0;  // precio SIN iva
             const desc   = parseFloat(inputs[2].value) || 0;
             const iva    = parseFloat(document.getElementById('iva-' + id)?.value) || 0;
-            const sub    = cant * precio;
+
+            const sub    = cant * precio;                      // base sin iva
             const dsc    = sub * (desc / 100);
             const base   = sub - dsc;
             const ivaVal = base * (iva / 100);
+            const total  = base + ivaVal;
+
             const subEl  = document.getElementById('sub-' + id);
-            if (subEl) subEl.textContent = '$ ' + Math.round(base + ivaVal).toLocaleString();
+            if (subEl) subEl.textContent = '$ ' + Math.round(total).toLocaleString();
             subtotalBruto  += sub;
             descuentoTotal += dsc;
             ivaTotal       += ivaVal;
@@ -248,24 +245,18 @@
         document.getElementById('txtTotal').textContent     = '$ ' + Math.round(base + ivaTotal).toLocaleString();
     }
 
-    // ── IMPRIMIR ──────────────────────────────────────
-    function imprimirCotizacion() {
-        window.print();
-    }
-
-    // ── ENVIAR WHATSAPP ───────────────────────────────
     function enviarWhatsApp() {
         const cliente  = document.getElementById('clienteTexto').value || 'Sin cliente';
         const vendedor = document.getElementById('vendedor').value || '-';
         const fecha    = document.getElementById('fechaActual').value;
 
-        let mensaje = `*COTIZACIÓN - VIBRAS POSITIVAS HM*\n`;
-        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
-        mensaje += `*Cliente:* ${cliente}\n`;
-        mensaje += `*Vendedor:* ${vendedor}\n`;
-        mensaje += `*Fecha:* ${fecha}\n`;
-        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
-        mensaje += `*PRODUCTOS:*\n`;
+        let msg = `*COTIZACIÓN - VIBRAS POSITIVAS HM*\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `*Cliente:* ${cliente}\n`;
+        msg += `*Vendedor:* ${vendedor}\n`;
+        msg += `*Fecha:* ${fecha}\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `*PRODUCTOS:*\n`;
 
         document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
             const id     = fila.id.replace('fila-', '');
@@ -277,22 +268,21 @@
             const iva    = parseFloat(document.getElementById('iva-' + id)?.value) || 0;
             const sub    = document.getElementById('sub-' + id)?.textContent || '$ 0';
             if (!ref) return;
-            mensaje += `\n▪ *${ref}* ${desc}\n`;
-            mensaje += `  Cant: ${cant} x $ ${Math.round(precio).toLocaleString()}`;
-            if (iva > 0) mensaje += ` + IVA ${iva}%`;
-            mensaje += `\n  Subtotal: ${sub}\n`;
+            msg += `\n▪ *${ref}* ${desc}\n`;
+            msg += `  Cant: ${cant} x $ ${Math.round(precio).toLocaleString()} s/IVA`;
+            if (iva > 0) msg += ` + IVA ${iva}%`;
+            msg += `\n  Subtotal: ${sub}\n`;
         });
 
-        mensaje += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        mensaje += `Subtotal: ${document.getElementById('txtSubtotal').textContent}\n`;
-        mensaje += `Descuento: ${document.getElementById('txtDescuento').textContent}\n`;
-        mensaje += `IVA: ${document.getElementById('txtIva').textContent}\n`;
-        mensaje += `*TOTAL: ${document.getElementById('txtTotal').textContent}*\n`;
-        mensaje += `━━━━━━━━━━━━━━━━━━━━\n`;
-        mensaje += `_VIBRAS POSITIVAS HM - 3117700431_`;
+        msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `Base gravable: ${document.getElementById('txtBase').textContent}\n`;
+        msg += `Descuento: ${document.getElementById('txtDescuento').textContent}\n`;
+        msg += `IVA: ${document.getElementById('txtIva').textContent}\n`;
+        msg += `*TOTAL: ${document.getElementById('txtTotal').textContent}*\n`;
+        msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+        msg += `_VIBRAS POSITIVAS HM - 3117700431_`;
 
-        const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
-        window.open(url, '_blank');
+        window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
     async function guardarCotizacion() {
@@ -315,7 +305,7 @@
         });
         if (!items.length) { alert('Agrega al menos un producto.'); return; }
         try {
-            const res  = await fetch(`${API}/cotizaciones`, {
+            const res = await fetch(`${API}/cotizaciones`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     cliente: nit, vendedor: document.getElementById('vendedor').value,
