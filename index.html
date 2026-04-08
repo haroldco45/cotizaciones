@@ -117,7 +117,7 @@
     </footer>
 </div>
 <script>
-    const API = 'http://192.168.1.12:3000/api';
+    const API = 'https://api-cotizaciones-production.up.railway.app/api';
     const WHATSAPP = '573117700431';
     let timeoutCli = null, timeoutProd = null, filaId = 0;
 
@@ -221,16 +221,14 @@
             const id     = fila.id.replace('fila-', '');
             const inputs = fila.querySelectorAll('input[type="number"]');
             const cant   = parseFloat(inputs[0].value) || 0;
-            const precio = parseFloat(inputs[1].value) || 0;  // precio SIN iva
+            const precio = parseFloat(inputs[1].value) || 0;
             const desc   = parseFloat(inputs[2].value) || 0;
             const iva    = parseFloat(document.getElementById('iva-' + id)?.value) || 0;
-
-            const sub    = cant * precio;                      // base sin iva
+            const sub    = cant * precio;
             const dsc    = sub * (desc / 100);
             const base   = sub - dsc;
             const ivaVal = base * (iva / 100);
             const total  = base + ivaVal;
-
             const subEl  = document.getElementById('sub-' + id);
             if (subEl) subEl.textContent = '$ ' + Math.round(total).toLocaleString();
             subtotalBruto  += sub;
@@ -249,7 +247,6 @@
         const cliente  = document.getElementById('clienteTexto').value || 'Sin cliente';
         const vendedor = document.getElementById('vendedor').value || '-';
         const fecha    = document.getElementById('fechaActual').value;
-
         let msg = `*COTIZACIÓN - VIBRAS POSITIVAS HM*\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `*Cliente:* ${cliente}\n`;
@@ -257,7 +254,6 @@
         msg += `*Fecha:* ${fecha}\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `*PRODUCTOS:*\n`;
-
         document.querySelectorAll('#cuerpoTabla tr').forEach(fila => {
             const id     = fila.id.replace('fila-', '');
             const inputs = fila.querySelectorAll('input[type="number"]');
@@ -273,7 +269,6 @@
             if (iva > 0) msg += ` + IVA ${iva}%`;
             msg += `\n  Subtotal: ${sub}\n`;
         });
-
         msg += `\n━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `Base gravable: ${document.getElementById('txtBase').textContent}\n`;
         msg += `Descuento: ${document.getElementById('txtDescuento').textContent}\n`;
@@ -281,7 +276,6 @@
         msg += `*TOTAL: ${document.getElementById('txtTotal').textContent}*\n`;
         msg += `━━━━━━━━━━━━━━━━━━━━\n`;
         msg += `_VIBRAS POSITIVAS HM - 3117700431_`;
-
         window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
